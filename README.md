@@ -1,7 +1,6 @@
-# aidmaidapi
+# AidMaid API
 
 
-FORMAT: 1A
 HOST: http://aidmaid.net/api/v3
 
 # AidMaid
