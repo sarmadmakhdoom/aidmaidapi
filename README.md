@@ -250,3 +250,136 @@ new alert has been posted or not.
             "isPosted":false
         }
 
+
+## Uplaod Profile Picture [/uploadphoto]
+
+You have to POST to this url with image file and the user id, it works just like a simple HTML
+multipart/form-data type request, make sure to resize the image before uploading, Any prefered
+size that you think should be used in your app can be uploaded, there is no limit on the server side.
+
+
+### Upload Image [POST] 
+
++ Parameters
+    + userid (int)
+    + imgfile (binary data)
+
+
+
++ Response 200 (text/html)
+
+        {
+        }
+
+
+## Downlaod User Profile Image [/downloadphoto/{userid}]
+
+To download uploaded user profile picture, you have to pass the user id to the GET url
+in this request and user profile picture is returned. If user id is not present on the server
+or the image is not yet uploaded, it will return default AidMaid anonymous image placeholder
+image in red color.
+
+### Download Image [GET] 
+
++ Response 200 (image/jpeg)
+
+        {
+        }
+
+
+# Group Streaming
+
+Let me explain how live video streaming works in v2.3 of the AidMaid, we take off the image/audio
+uploading in that version and moved only to live video streaming. So currently no API is available to
+do that, just functions are present to make possible the video streaming.
+
+How this system works, first of all when a user start streaming on AidMaid, the app connects with the server
+and take a `token` which is a random string of length 10. It can be letters or numbers, this token also
+initialize the server for the streaming. I recommend saving that `token` in the user preference on the mobile
+so that it can reused when a user stream. But if somehow it is lost, you can generate a new token
+from the server. Because we are currently not removing data from the server of a particular token
+that is why I am suggesting to keeping it at a safe palce. You will need this token for Red5Pro server as well,
+because this is the token you will be sending to the receiver side as an SMS. And all the information
+can be retrieved from the server from this token easily.
+
+After getting the token from the server. The first thing to do is to sync user position from the 
+app to the server, there is an endpoint for that, where you will post `userid`, `latitude` and `longitude`
+on the server. You will keep sending this information after (either a regular interval or user changes its positions).
+Select any method you feel comfortable with, I personally choosed position changed event in iOS app to sync with the server.
+
+
+There is another endpoint from which you will get position, name of the user and time of last update on the server
+by supplying token.
+
+
+So here is the workflow of the live video stream.
+
+1. User start streaming
+2. New Token is generated from the server
+3. Sender sync its position with user id with the server
+4. Sender start live streaming with Red5Server and the stream name would be token
+5. Sender send a SMS to the Receiver (a link with the token, explain later)
+6. Receiver open that link and it will open the app
+7. Receiver retrieve the information from the server with that token
+8. Receiver show the information and start receving the live steream from Red5Server
+
+
+**SMS Sending:** You can send SMS to the user with the link `http://aidmaid.net/live/{token}`
+if the app is installed, it will open it using scheme `aidmaid://token` or open the webpage where 
+it shows the live position of the user and option for tracking.
+
+## Get Token [/stream/gettoken]
+
+Get and init random token from the server
+
+### Get Token [GET] 
+
++ Response 200 (application/json)
+
+        {
+            "Status":"Done",
+            "Token":"vCkWctZEvJ"
+        }
+
+## Sync User Position [/stream/sync]
+
+Upload information on the server
+
+### Upload Info [POST] 
+
++ Parameters
+    + token (string)
+    + userid (int)
+    + lat (float)
+    + lon (float)
+
+
+
++ Response 200 (application/json)
+
+        {
+            "Status":"Done"
+        }
+
+## Get Stream Info [/stream/getinfo]
+
+Get stream information like user id, name, position, last update time from the server.
+Here time is UNIX timestamp, you can convert it to any format you like.
+
+### Get Stream Information [POST] 
+
++ Parameters
+    + token (string)
+
+
+
++ Response 200 (application/json)
+
+        {
+            "Status":"OK",
+            "Time":123423434,
+            "userid":2,
+            "lat":37.234234,
+            "lon":-71.234234,
+            "name":"Sarmad Makhdoom",
+        }
