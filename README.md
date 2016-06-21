@@ -1,4 +1,4 @@
-# AidMaid API
+# AidMaid Legacy API (Unavailable)
 
 
 HOST: http://aidmaid.net/api/v3
