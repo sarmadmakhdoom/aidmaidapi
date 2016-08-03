@@ -1,16 +1,18 @@
-# AidMaid Legacy API (Unavailable)
+# AidMaid API
 
 
-HOST: http://aidmaid.net/api/v3
+HOST: http://aidmaid.io/api
 
 # AidMaid
 
-Here are the details of complete list of operations we need to integrade in our iOS and Android apps.
-You must have to use this API in order to make the calls to the server to keep data consitant between two platforms.
+Before jumping into API endpoints, let me describe the architecture of the whole system. The server are based on Amazon EC2 instances which are running behind the Elastic Load Balancer. Database is hosted on Amazon RDS (MySql) and Apache/Slim is used to construct Restful APIs. The apps (iOS and Android) is using Amazon Cognito, that provide identity to all the app users. Currently we are not using authenticated identites, all identites are treated as guests.
+
+All API endpoints with few exceptions (like register, login) should be called with authenticated headers. The header must have SHA1 value of user's uid (Universal Identified provided from Cognito). That SHA1(uid) would be checked before entertaining any request. If server did not find any `uid` present in the database, it will return 400 response code. That would indicate your request is not valid.
+
+We are using Amazon SNS for push notification for both platforms. When an app run, the Amazon gives the app and uid (Cognito) and Push Arn (SNS). We would be using these two values in various API calls. 
 
 # User Management
 
-Here you will find operations to register, login or edit profile for a specific user in AidMaid system
 
 ## User Availability [/checkuser/{username}]
 
@@ -34,23 +36,34 @@ Example: `/checkuser/sarmad`
         }
 
 
-## Register [/register]
+## Register [/register_email]
 
-In order to register a user in the system, you have to send POST call to the /register url
-with the data for everything, on successfuly user creating, the server will result JSON 
-with Stauts = OK, and Data field with required data for other functions. You have to specially
-take care of `userid` and store it in
-the app repository for later use, because if user want to
-post any alert, then it should have to send this user id, for edit profile/change password, for everything
-this `userid` is a must
+There are two types of registration in AidMaid, one is from the Facebook and one is in-app registration. Facebook registration is not implemented as it suppose to be. But we kind a get our system working with it.
+
+In case of Facebook login button, user authenticate from facebook, on return we grab basic info permissions for user account. Then we just get `name` and `email` from their API. We use this information to populate our own registration page. Remember in case of Facebook login, user would not enter the `password` in registration page. So his email, name and password would be automatically populated and disabled for editing. On registration page, he just have to supply phone number.
+
+In case of AidMaid regsitration, user will have to provide all of the required information on the screen along with his photo.
+
+Then you can call the register_email endpoint.
+
+For Normal user, everything is straightforward, last `isaidmaid` should be 1 in case of in-app registration.
+For Facebook user, `isaidmaid` should be 0, password should be sha1(email)
+
+In final call you should send sha1 of password
+
+Example: In simple case user entered password as 'abcdef'
+You would send in API call sha1(abcdef)
+In Facebook case, lets say emai is 'abc@xyz.com'
+The password you would send in the api call would be sha1(sha1(abc@xyz.com))
 
 
 + Parameters
-    + username (string)
-    + password (string)
-    + fullname (string)
+    + name (string)
     + phone (string)
+    + pusharn (string)
     + email (string)
+    + password (string)
+    + isaidmaid
 
 
 ### Register a User [POST] 
@@ -61,11 +74,8 @@ this `userid` is a must
         {
             "Status": "OK",
             "Data": {
-                "userid": "7",
-                "username": "sarmad11",
-                "fullname": "sarmad makhdoom",
-                "phone": "+923344",
-                "email": "adil@adil.com"
+                "status": "true",
+                "points": "100"
             }
         }
 
